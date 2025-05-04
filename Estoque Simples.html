@@ -1,0 +1,1343 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Estoque Sapatos Femininos</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 100;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.5);
+        }
+        .modal-content {
+            background-color: white;
+            margin: 5% auto;
+            padding: 20px;
+            border-radius: 8px;
+            width: 60%;
+            max-width: 800px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+        }
+        .close {
+            color: #aaa;
+            float: right;
+            font-size: 28px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+        .close:hover {
+            color: black;
+        }
+        .low-stock {
+            background-color: #fff3cd;
+        }
+        .critical-stock {
+            background-color: #f8d7da;
+        }
+        .tab-content {
+            display: none;
+        }
+        .tab-content.active {
+            display: block;
+        }
+        .tab-button.active {
+            border-bottom: 3px solid #6366f1;
+            color: #6366f1;
+            font-weight: 600;
+        }
+    </style>
+</head>
+<body class="bg-gray-100">
+    <div class="container mx-auto px-4 py-8">
+        <h1 class="text-3xl font-bold text-center mb-8 text-purple-800">Estoque de Sapatos Femininos</h1>
+        
+        <div class="flex justify-between items-center mb-6">
+            <div class="flex space-x-2">
+                <button id="btn-add-product" class="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg flex items-center">
+                    <i class="fas fa-plus mr-2"></i> Adicionar Produto
+                </button>
+                <button id="btn-add-supplier" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg flex items-center">
+                    <i class="fas fa-truck mr-2"></i> Adicionar Fornecedor
+                </button>
+                <button id="btn-low-stock" class="bg-yellow-600 hover:bg-yellow-700 text-white px-4 py-2 rounded-lg flex items-center">
+                    <i class="fas fa-exclamation-triangle mr-2"></i> Estoque Baixo
+                </button>
+            </div>
+            <div class="text-gray-600">
+                <i class="fas fa-calendar-alt mr-2"></i>
+                <span id="current-date"></span>
+            </div>
+        </div>
+
+        <div class="bg-white rounded-lg shadow-md p-6 mb-8">
+            <div class="flex border-b mb-4">
+                <button class="tab-button active px-4 py-2" data-tab="all-products">Todos os Produtos</button>
+                <button class="tab-button px-4 py-2" data-tab="inventory-movements">Movimentações</button>
+                <button class="tab-button px-4 py-2" data-tab="suppliers">Fornecedores</button>
+            </div>
+
+            <div id="all-products" class="tab-content active">
+                <div class="mb-4 flex justify-between items-center">
+                    <div class="relative w-64">
+                        <input type="text" id="search-product" placeholder="Buscar produto..." class="w-full pl-10 pr-4 py-2 border rounded-lg">
+                        <i class="fas fa-search absolute left-3 top-3 text-gray-400"></i>
+                    </div>
+                    <div>
+                        <label for="filter-category" class="mr-2">Filtrar por:</label>
+                        <select id="filter-category" class="border rounded-lg px-3 py-2">
+                            <option value="all">Todas categorias</option>
+                            <option value="sandalia">Sandália</option>
+                            <option value="sapato">Sapato</option>
+                            <option value="bota">Bota</option>
+                            <option value="rasteirinha">Rasteirinha</option>
+                            <option value="tenis">Tênis</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <div class="overflow-x-auto">
+                    <table class="min-w-full bg-white rounded-lg overflow-hidden">
+                        <thead class="bg-purple-100">
+                            <tr>
+                                <th class="py-3 px-4 text-left">Foto</th>
+                                <th class="py-3 px-4 text-left">Código</th>
+                                <th class="py-3 px-4 text-left">Nome</th>
+                                <th class="py-3 px-4 text-left">Categoria</th>
+                                <th class="py-3 px-4 text-left">Tamanhos</th>
+                                <th class="py-3 px-4 text-left">Estoque</th>
+                                <th class="py-3 px-4 text-left">Fornecedor</th>
+                                <th class="py-3 px-4 text-left">Ações</th>
+                            </tr>
+                        </thead>
+                        <tbody id="products-table-body" class="divide-y divide-gray-200">
+                            <!-- Produtos serão inseridos aqui via JavaScript -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div id="inventory-movements" class="tab-content">
+                <div class="mb-4 flex justify-between items-center">
+                    <div class="relative w-64">
+                        <input type="text" id="search-movement" placeholder="Buscar movimentação..." class="w-full pl-10 pr-4 py-2 border rounded-lg">
+                        <i class="fas fa-search absolute left-3 top-3 text-gray-400"></i>
+                    </div>
+                    <div class="flex space-x-2">
+                        <button id="filter-in" class="bg-green-100 text-green-800 px-3 py-1 rounded-lg">Entradas</button>
+                        <button id="filter-out" class="bg-red-100 text-red-800 px-3 py-1 rounded-lg">Saídas</button>
+                        <button id="filter-all-movements" class="bg-gray-100 text-gray-800 px-3 py-1 rounded-lg">Todas</button>
+                    </div>
+                </div>
+                
+                <div class="overflow-x-auto">
+                    <table class="min-w-full bg-white rounded-lg overflow-hidden">
+                        <thead class="bg-purple-100">
+                            <tr>
+                                <th class="py-3 px-4 text-left">Data/Hora</th>
+                                <th class="py-3 px-4 text-left">Produto</th>
+                                <th class="py-3 px-4 text-left">Tipo</th>
+                                <th class="py-3 px-4 text-left">Quantidade</th>
+                                <th class="py-3 px-4 text-left">Responsável</th>
+                                <th class="py-3 px-4 text-left">Motivo</th>
+                            </tr>
+                        </thead>
+                        <tbody id="movements-table-body" class="divide-y divide-gray-200">
+                            <!-- Movimentações serão inseridas aqui via JavaScript -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div id="suppliers" class="tab-content">
+                <div class="mb-4 flex justify-between items-center">
+                    <div class="relative w-64">
+                        <input type="text" id="search-supplier" placeholder="Buscar fornecedor..." class="w-full pl-10 pr-4 py-2 border rounded-lg">
+                        <i class="fas fa-search absolute left-3 top-3 text-gray-400"></i>
+                    </div>
+                    <button id="btn-export-suppliers" class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg flex items-center">
+                        <i class="fas fa-file-excel mr-2"></i> Exportar
+                    </button>
+                </div>
+                
+                <div class="overflow-x-auto">
+                    <table class="min-w-full bg-white rounded-lg overflow-hidden">
+                        <thead class="bg-purple-100">
+                            <tr>
+                                <th class="py-3 px-4 text-left">Nome</th>
+                                <th class="py-3 px-4 text-left">CNPJ</th>
+                                <th class="py-3 px-4 text-left">Contato</th>
+                                <th class="py-3 px-4 text-left">Email</th>
+                                <th class="py-3 px-4 text-left">Produtos Fornecidos</th>
+                                <th class="py-3 px-4 text-left">Ações</th>
+                            </tr>
+                        </thead>
+                        <tbody id="suppliers-table-body" class="divide-y divide-gray-200">
+                            <!-- Fornecedores serão inseridos aqui via JavaScript -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Adicionar/Editar Produto -->
+    <div id="product-modal" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <h2 class="text-xl font-bold mb-4" id="modal-product-title">Adicionar Novo Produto</h2>
+            
+            <form id="product-form" class="space-y-4">
+                <input type="hidden" id="product-id">
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label for="product-code" class="block mb-1">Código do Produto</label>
+                        <input type="text" id="product-code" class="w-full border rounded-lg px-3 py-2" required>
+                    </div>
+                    
+                    <div>
+                        <label for="product-name" class="block mb-1">Nome do Produto</label>
+                        <input type="text" id="product-name" class="w-full border rounded-lg px-3 py-2" required>
+                    </div>
+                    
+                    <div>
+                        <label for="product-category" class="block mb-1">Categoria</label>
+                        <select id="product-category" class="w-full border rounded-lg px-3 py-2" required>
+                            <option value="">Selecione...</option>
+                            <option value="sandalia">Sandália</option>
+                            <option value="sapato">Sapato</option>
+                            <option value="bota">Bota</option>
+                            <option value="rasteirinha">Rasteirinha</option>
+                            <option value="tenis">Tênis</option>
+                        </select>
+                    </div>
+                    
+                    <div>
+                        <label for="product-supplier" class="block mb-1">Fornecedor</label>
+                        <select id="product-supplier" class="w-full border rounded-lg px-3 py-2" required>
+                            <option value="">Selecione...</option>
+                            <!-- Fornecedores serão carregados aqui -->
+                        </select>
+                    </div>
+                    
+                    <div>
+                        <label for="product-price" class="block mb-1">Preço (R$)</label>
+                        <input type="number" step="0.01" id="product-price" class="w-full border rounded-lg px-3 py-2" required>
+                    </div>
+                    
+                    <div>
+                        <label for="product-cost" class="block mb-1">Custo (R$)</label>
+                        <input type="number" step="0.01" id="product-cost" class="w-full border rounded-lg px-3 py-2" required>
+                    </div>
+                    
+                    <div>
+                        <label for="product-colors" class="block mb-1">Cores Disponíveis</label>
+                        <input type="text" id="product-colors" class="w-full border rounded-lg px-3 py-2" placeholder="Ex: Preto, Branco, Vermelho">
+                    </div>
+                    
+                    <div>
+                        <label for="product-sizes" class="block mb-1">Tamanhos Disponíveis</label>
+                        <input type="text" id="product-sizes" class="w-full border rounded-lg px-3 py-2" placeholder="Ex: 34, 35, 36, 37" required>
+                    </div>
+                    
+                    <div>
+                        <label for="product-stock" class="block mb-1">Estoque Inicial</label>
+                        <input type="number" id="product-stock" class="w-full border rounded-lg px-3 py-2" required>
+                    </div>
+                    
+                    <div>
+                        <label for="product-min-stock" class="block mb-1">Estoque Mínimo</label>
+                        <input type="number" id="product-min-stock" class="w-full border rounded-lg px-3 py-2" value="2">
+                    </div>
+                    
+                    <div class="md:col-span-2">
+                        <label for="product-description" class="block mb-1">Descrição</label>
+                        <textarea id="product-description" rows="3" class="w-full border rounded-lg px-3 py-2"></textarea>
+                    </div>
+                    
+                    <div class="md:col-span-2">
+                        <label for="product-image" class="block mb-1">Foto do Produto</label>
+                        <input type="file" id="product-image" accept="image/*" class="w-full border rounded-lg px-3 py-2">
+                        <div class="mt-2 w-32 h-32 border rounded-lg flex items-center justify-center" id="product-image-preview">
+                            <span class="text-gray-400">Sem imagem</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="flex justify-end space-x-3 pt-4">
+                    <button type="button" class="close-modal bg-gray-300 hover:bg-gray-400 text-gray-800 px-4 py-2 rounded-lg">Cancelar</button>
+                    <button type="submit" class="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg">Salvar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal Adicionar/Editar Fornecedor -->
+    <div id="supplier-modal" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <h2 class="text-xl font-bold mb-4" id="modal-supplier-title">Adicionar Novo Fornecedor</h2>
+            
+            <form id="supplier-form" class="space-y-4">
+                <input type="hidden" id="supplier-id">
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label for="supplier-name" class="block mb-1">Nome do Fornecedor</label>
+                        <input type="text" id="supplier-name" class="w-full border rounded-lg px-3 py-2" required>
+                    </div>
+                    
+                    <div>
+                        <label for="supplier-cnpj" class="block mb-1">CNPJ</label>
+                        <input type="text" id="supplier-cnpj" class="w-full border rounded-lg px-3 py-2" required>
+                    </div>
+                    
+                    <div>
+                        <label for="supplier-contact" class="block mb-1">Contato</label>
+                        <input type="text" id="supplier-contact" class="w-full border rounded-lg px-3 py-2" required>
+                    </div>
+                    
+                    <div>
+                        <label for="supplier-phone" class="block mb-1">Telefone</label>
+                        <input type="text" id="supplier-phone" class="w-full border rounded-lg px-3 py-2" required>
+                    </div>
+                    
+                    <div>
+                        <label for="supplier-email" class="block mb-1">Email</label>
+                        <input type="email" id="supplier-email" class="w-full border rounded-lg px-3 py-2" required>
+                    </div>
+                    
+                    <div>
+                        <label for="supplier-website" class="block mb-1">Website</label>
+                        <input type="url" id="supplier-website" class="w-full border rounded-lg px-3 py-2">
+                    </div>
+                    
+                    <div class="md:col-span-2">
+                        <label for="supplier-address" class="block mb-1">Endereço</label>
+                        <input type="text" id="supplier-address" class="w-full border rounded-lg px-3 py-2">
+                    </div>
+                    
+                    <div>
+                        <label for="supplier-city" class="block mb-1">Cidade</label>
+                        <input type="text" id="supplier-city" class="w-full border rounded-lg px-3 py-2">
+                    </div>
+                    
+                    <div>
+                        <label for="supplier-state" class="block mb-1">Estado</label>
+                        <input type="text" id="supplier-state" class="w-full border rounded-lg px-3 py-2">
+                    </div>
+                    
+                    <div class="md:col-span-2">
+                        <label for="supplier-notes" class="block mb-1">Observações</label>
+                        <textarea id="supplier-notes" rows="3" class="w-full border rounded-lg px-3 py-2"></textarea>
+                    </div>
+                </div>
+                
+                <div class="flex justify-end space-x-3 pt-4">
+                    <button type="button" class="close-modal bg-gray-300 hover:bg-gray-400 text-gray-800 px-4 py-2 rounded-lg">Cancelar</button>
+                    <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg">Salvar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal Movimentação de Estoque -->
+    <div id="movement-modal" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <h2 class="text-xl font-bold mb-4">Movimentação de Estoque</h2>
+            
+            <form id="movement-form" class="space-y-4">
+                <input type="hidden" id="movement-product-id">
+                <input type="hidden" id="movement-product-name">
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block mb-1">Produto</label>
+                        <p class="font-medium" id="movement-product-display"></p>
+                    </div>
+                    
+                    <div>
+                        <label class="block mb-1">Estoque Atual</label>
+                        <p class="font-medium" id="movement-current-stock"></p>
+                    </div>
+                    
+                    <div>
+                        <label for="movement-type" class="block mb-1">Tipo de Movimentação</label>
+                        <select id="movement-type" class="w-full border rounded-lg px-3 py-2" required>
+                            <option value="in">Entrada</option>
+                            <option value="out">Saída</option>
+                        </select>
+                    </div>
+                    
+                    <div>
+                        <label for="movement-quantity" class="block mb-1">Quantidade</label>
+                        <input type="number" id="movement-quantity" class="w-full border rounded-lg px-3 py-2" min="1" required>
+                    </div>
+                    
+                    <div>
+                        <label for="movement-responsible" class="block mb-1">Responsável</label>
+                        <input type="text" id="movement-responsible" class="w-full border rounded-lg px-3 py-2" required>
+                    </div>
+                    
+                    <div>
+                        <label for="movement-reason" class="block mb-1">Motivo</label>
+                        <select id="movement-reason" class="w-full border rounded-lg px-3 py-2" required>
+                            <option value="compra">Compra</option>
+                            <option value="venda">Venda</option>
+                            <option value="devolucao">Devolução</option>
+                            <option value="ajuste">Ajuste de Estoque</option>
+                            <option value="perda">Perda/Danificado</option>
+                            <option value="outro">Outro</option>
+                        </select>
+                    </div>
+                    
+                    <div class="md:col-span-2">
+                        <label for="movement-notes" class="block mb-1">Observações</label>
+                        <textarea id="movement-notes" rows="2" class="w-full border rounded-lg px-3 py-2"></textarea>
+                    </div>
+                </div>
+                
+                <div class="flex justify-end space-x-3 pt-4">
+                    <button type="button" class="close-modal bg-gray-300 hover:bg-gray-400 text-gray-800 px-4 py-2 rounded-lg">Cancelar</button>
+                    <button type="submit" class="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg">Registrar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal Estoque Baixo -->
+    <div id="low-stock-modal" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <h2 class="text-xl font-bold mb-4">Produtos com Estoque Baixo</h2>
+            
+            <div class="mb-4 flex justify-between items-center">
+                <div>
+                    <span class="text-sm text-gray-600">Mostrando produtos com estoque abaixo do mínimo</span>
+                </div>
+                <button id="btn-print-low-stock" class="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg flex items-center">
+                    <i class="fas fa-print mr-2"></i> Imprimir Relatório
+                </button>
+            </div>
+            
+            <div class="overflow-x-auto">
+                <table class="min-w-full bg-white rounded-lg overflow-hidden">
+                    <thead class="bg-yellow-100">
+                        <tr>
+                            <th class="py-3 px-4 text-left">Código</th>
+                            <th class="py-3 px-4 text-left">Produto</th>
+                            <th class="py-3 px-4 text-left">Estoque Atual</th>
+                            <th class="py-3 px-4 text-left">Estoque Mínimo</th>
+                            <th class="py-3 px-4 text-left">Fornecedor</th>
+                            <th class="py-3 px-4 text-left">Contato</th>
+                            <th class="py-3 px-4 text-left">Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody id="low-stock-table-body" class="divide-y divide-gray-200">
+                        <!-- Produtos com estoque baixo serão inseridos aqui -->
+                    </tbody>
+                </table>
+            </div>
+            
+            <div class="flex justify-end pt-4">
+                <button type="button" class="close-modal bg-gray-300 hover:bg-gray-400 text-gray-800 px-4 py-2 rounded-lg">Fechar</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Dados iniciais (simulando um banco de dados)
+        let products = [
+            {
+                id: 1,
+                code: "SF-001",
+                name: "Sandália Anabela",
+                category: "sandalia",
+                description: "Sandália anabela couro salto médio",
+                price: 129.90,
+                cost: 65.00,
+                colors: "Preto, Bege, Vermelho",
+                sizes: "35, 36, 37, 38, 39",
+                stock: 5,
+                minStock: 2,
+                supplierId: 1,
+                image: "https://via.placeholder.com/150?text=Sandália+Anabela"
+            },
+            {
+                id: 2,
+                code: "SF-002",
+                name: "Sapato Social",
+                category: "sapato",
+                description: "Sapato social feminino couro verniz",
+                price: 199.90,
+                cost: 90.00,
+                colors: "Preto, Marrom, Vinho",
+                sizes: "34, 35, 36, 37",
+                stock: 2,
+                minStock: 3,
+                supplierId: 2,
+                image: "https://via.placeholder.com/150?text=Sapato+Social"
+            },
+            {
+                id: 3,
+                code: "SF-003",
+                name: "Bota Cano Curto",
+                category: "bota",
+                description: "Bota cano curto couro com zíper",
+                price: 249.90,
+                cost: 120.00,
+                colors: "Preto, Marrom, Cinza",
+                sizes: "35, 36, 37, 38",
+                stock: 1,
+                minStock: 2,
+                supplierId: 1,
+                image: "https://via.placeholder.com/150?text=Bota+Cano+Curto"
+            }
+        ];
+
+        let suppliers = [
+            {
+                id: 1,
+                name: "Calçados Femininos Ltda",
+                cnpj: "12.345.678/0001-90",
+                contact: "Maria Silva",
+                phone: "(11) 98765-4321",
+                email: "contato@calcadosfemininos.com.br",
+                website: "https://www.calcadosfemininos.com.br",
+                address: "Rua das Flores, 123 - Centro",
+                city: "São Paulo",
+                state: "SP",
+                notes: "Entrega em até 5 dias úteis"
+            },
+            {
+                id: 2,
+                name: "Sapatos Elegantes S/A",
+                cnpj: "98.765.432/0001-21",
+                contact: "João Santos",
+                phone: "(21) 99876-5432",
+                email: "vendas@sapatoselegantes.com.br",
+                website: "https://www.sapatoselegantes.com.br",
+                address: "Av. Principal, 456 - Jardins",
+                city: "Rio de Janeiro",
+                state: "RJ",
+                notes: "Pedido mínimo de R$ 1.000,00"
+            }
+        ];
+
+        let movements = [
+            {
+                id: 1,
+                productId: 1,
+                productName: "Sandália Anabela",
+                type: "in",
+                quantity: 10,
+                responsible: "Maria Silva",
+                reason: "compra",
+                notes: "Pedido inicial de estoque",
+                date: "2023-05-10T09:30:00"
+            },
+            {
+                id: 2,
+                productId: 1,
+                productName: "Sandália Anabela",
+                type: "out",
+                quantity: 5,
+                responsible: "Ana Souza",
+                reason: "venda",
+                notes: "Venda para cliente",
+                date: "2023-05-15T14:15:00"
+            },
+            {
+                id: 3,
+                productId: 2,
+                productName: "Sapato Social",
+                type: "in",
+                quantity: 5,
+                responsible: "Carlos Oliveira",
+                reason: "compra",
+                notes: "Reposição de estoque",
+                date: "2023-05-12T11:20:00"
+            },
+            {
+                id: 4,
+                productId: 2,
+                productName: "Sapato Social",
+                type: "out",
+                quantity: 3,
+                responsible: "Ana Souza",
+                reason: "venda",
+                notes: "Venda para loja parceira",
+                date: "2023-05-18T16:45:00"
+            },
+            {
+                id: 5,
+                productId: 3,
+                productName: "Bota Cano Curto",
+                type: "in",
+                quantity: 3,
+                responsible: "Maria Silva",
+                reason: "compra",
+                notes: "Pedido inicial",
+                date: "2023-05-05T10:00:00"
+            },
+            {
+                id: 6,
+                productId: 3,
+                productName: "Bota Cano Curto",
+                type: "out",
+                quantity: 2,
+                responsible: "Carlos Oliveira",
+                reason: "venda",
+                notes: "Venda online",
+                date: "2023-05-20T09:10:00"
+            }
+        ];
+
+        // Funções auxiliares
+        function formatDate(dateString) {
+            const options = { 
+                day: '2-digit', 
+                month: '2-digit', 
+                year: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit'
+            };
+            return new Date(dateString).toLocaleString('pt-BR', options);
+        }
+
+        function getSupplierName(id) {
+            const supplier = suppliers.find(s => s.id === id);
+            return supplier ? supplier.name : "Não informado";
+        }
+
+        function getSupplierById(id) {
+            return suppliers.find(s => s.id === id);
+        }
+
+        function getProductById(id) {
+            return products.find(p => p.id === id);
+        }
+
+        // Atualizar a interface
+        function updateProductsTable(filter = "", category = "all") {
+            const tbody = document.getElementById('products-table-body');
+            tbody.innerHTML = '';
+            
+            let filteredProducts = products;
+            
+            if (filter) {
+                filteredProducts = filteredProducts.filter(p => 
+                    p.code.toLowerCase().includes(filter.toLowerCase()) || 
+                    p.name.toLowerCase().includes(filter.toLowerCase())
+                );
+            }
+            
+            if (category !== "all") {
+                filteredProducts = filteredProducts.filter(p => p.category === category);
+            }
+            
+            filteredProducts.forEach(product => {
+                const supplier = getSupplierById(product.supplierId);
+                const rowClass = product.stock < product.minStock ? 
+                    (product.stock <= 0 ? 'critical-stock' : 'low-stock') : '';
+                
+                const row = document.createElement('tr');
+                row.className = rowClass;
+                row.innerHTML = `
+                    <td class="py-3 px-4">
+                        <img src="${product.image}" alt="${product.name}" class="w-16 h-16 object-cover rounded">
+                    </td>
+                    <td class="py-3 px-4">${product.code}</td>
+                    <td class="py-3 px-4 font-medium">${product.name}</td>
+                    <td class="py-3 px-4 capitalize">${product.category}</td>
+                    <td class="py-3 px-4">${product.sizes}</td>
+                    <td class="py-3 px-4">
+                        <span class="font-medium ${product.stock < product.minStock ? 'text-red-600' : ''}">
+                            ${product.stock}
+                        </span>
+                        ${product.stock < product.minStock ? `<span class="text-xs text-red-600 block">Mín: ${product.minStock}</span>` : ''}
+                    </td>
+                    <td class="py-3 px-4">${supplier ? supplier.name : 'Não informado'}</td>
+                    <td class="py-3 px-4">
+                        <div class="flex space-x-2">
+                            <button class="edit-product p-1 text-blue-600 hover:text-blue-800" data-id="${product.id}">
+                                <i class="fas fa-edit"></i>
+                            </button>
+                            <button class="delete-product p-1 text-red-600 hover:text-red-800" data-id="${product.id}">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                            <button class="movement-product p-1 text-purple-600 hover:text-purple-800" data-id="${product.id}" data-name="${product.name}" data-stock="${product.stock}">
+                                <i class="fas fa-exchange-alt"></i>
+                            </button>
+                        </div>
+                    </td>
+                `;
+                tbody.appendChild(row);
+            });
+            
+            // Adicionar eventos aos botões
+            document.querySelectorAll('.edit-product').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    const productId = parseInt(e.currentTarget.getAttribute('data-id'));
+                    editProduct(productId);
+                });
+            });
+            
+            document.querySelectorAll('.delete-product').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    const productId = parseInt(e.currentTarget.getAttribute('data-id'));
+                    deleteProduct(productId);
+                });
+            });
+            
+            document.querySelectorAll('.movement-product').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    const productId = parseInt(e.currentTarget.getAttribute('data-id'));
+                    const productName = e.currentTarget.getAttribute('data-name');
+                    const currentStock = parseInt(e.currentTarget.getAttribute('data-stock'));
+                    showMovementModal(productId, productName, currentStock);
+                });
+            });
+        }
+
+        function updateMovementsTable(filter = "", type = "all") {
+            const tbody = document.getElementById('movements-table-body');
+            tbody.innerHTML = '';
+            
+            let filteredMovements = movements;
+            
+            if (filter) {
+                filteredMovements = filteredMovements.filter(m => 
+                    m.productName.toLowerCase().includes(filter.toLowerCase()) ||
+                    m.responsible.toLowerCase().includes(filter.toLowerCase())
+                );
+            }
+            
+            if (type !== "all") {
+                filteredMovements = filteredMovements.filter(m => m.type === type);
+            }
+            
+            // Ordenar por data (mais recente primeiro)
+            filteredMovements.sort((a, b) => new Date(b.date) - new Date(a.date));
+            
+            filteredMovements.forEach(movement => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td class="py-3 px-4">${formatDate(movement.date)}</td>
+                    <td class="py-3 px-4 font-medium">${movement.productName}</td>
+                    <td class="py-3 px-4">
+                        <span class="px-2 py-1 rounded-full text-xs ${movement.type === 'in' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}">
+                            ${movement.type === 'in' ? 'Entrada' : 'Saída'}
+                        </span>
+                    </td>
+                    <td class="py-3 px-4 font-medium ${movement.type === 'in' ? 'text-green-600' : 'text-red-600'}">
+                        ${movement.type === 'in' ? '+' : '-'}${movement.quantity}
+                    </td>
+                    <td class="py-3 px-4">${movement.responsible}</td>
+                    <td class="py-3 px-4 capitalize">${movement.reason}</td>
+                `;
+                tbody.appendChild(row);
+            });
+        }
+
+        function updateSuppliersTable(filter = "") {
+            const tbody = document.getElementById('suppliers-table-body');
+            tbody.innerHTML = '';
+            
+            let filteredSuppliers = suppliers;
+            
+            if (filter) {
+                filteredSuppliers = filteredSuppliers.filter(s => 
+                    s.name.toLowerCase().includes(filter.toLowerCase()) ||
+                    s.cnpj.includes(filter) ||
+                    s.contact.toLowerCase().includes(filter.toLowerCase())
+                );
+            }
+            
+            filteredSuppliers.forEach(supplier => {
+                const productsCount = products.filter(p => p.supplierId === supplier.id).length;
+                
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td class="py-3 px-4 font-medium">${supplier.name}</td>
+                    <td class="py-3 px-4">${supplier.cnpj}</td>
+                    <td class="py-3 px-4">${supplier.contact}<br>${supplier.phone}</td>
+                    <td class="py-3 px-4">${supplier.email}</td>
+                    <td class="py-3 px-4">${productsCount} produto(s)</td>
+                    <td class="py-3 px-4">
+                        <div class="flex space-x-2">
+                            <button class="edit-supplier p-1 text-blue-600 hover:text-blue-800" data-id="${supplier.id}">
+                                <i class="fas fa-edit"></i>
+                            </button>
+                            <button class="delete-supplier p-1 text-red-600 hover:text-red-800" data-id="${supplier.id}">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </div>
+                    </td>
+                `;
+                tbody.appendChild(row);
+            });
+            
+            // Adicionar eventos aos botões
+            document.querySelectorAll('.edit-supplier').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    const supplierId = parseInt(e.currentTarget.getAttribute('data-id'));
+                    editSupplier(supplierId);
+                });
+            });
+            
+            document.querySelectorAll('.delete-supplier').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    const supplierId = parseInt(e.currentTarget.getAttribute('data-id'));
+                    deleteSupplier(supplierId);
+                });
+            });
+        }
+
+        function updateLowStockTable() {
+            const tbody = document.getElementById('low-stock-table-body');
+            tbody.innerHTML = '';
+            
+            const lowStockProducts = products.filter(p => p.stock < p.minStock);
+            
+            if (lowStockProducts.length === 0) {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td colspan="7" class="py-4 px-4 text-center text-gray-500">
+                        Nenhum produto com estoque abaixo do mínimo
+                    </td>
+                `;
+                tbody.appendChild(row);
+                return;
+            }
+            
+            lowStockProducts.forEach(product => {
+                const supplier = getSupplierById(product.supplierId);
+                
+                const row = document.createElement('tr');
+                row.className = product.stock <= 0 ? 'critical-stock' : 'low-stock';
+                row.innerHTML = `
+                    <td class="py-3 px-4">${product.code}</td>
+                    <td class="py-3 px-4 font-medium">${product.name}</td>
+                    <td class="py-3 px-4 font-medium text-red-600">${product.stock}</td>
+                    <td class="py-3 px-4">${product.minStock}</td>
+                    <td class="py-3 px-4">${supplier ? supplier.name : 'Não informado'}</td>
+                    <td class="py-3 px-4">${supplier ? supplier.phone : '-'}</td>
+                    <td class="py-3 px-4">
+                        <button class="movement-product p-1 text-purple-600 hover:text-purple-800" data-id="${product.id}" data-name="${product.name}" data-stock="${product.stock}">
+                            <i class="fas fa-exchange-alt mr-1"></i> Movimentar
+                        </button>
+                    </td>
+                `;
+                tbody.appendChild(row);
+            });
+            
+            // Adicionar eventos aos botões
+            document.querySelectorAll('.movement-product').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    const productId = parseInt(e.currentTarget.getAttribute('data-id'));
+                    const productName = e.currentTarget.getAttribute('data-name');
+                    const currentStock = parseInt(e.currentTarget.getAttribute('data-stock'));
+                    showMovementModal(productId, productName, currentStock);
+                });
+            });
+        }
+
+        function loadSupplierOptions() {
+            const select = document.getElementById('product-supplier');
+            select.innerHTML = '<option value="">Selecione...</option>';
+            
+            suppliers.forEach(supplier => {
+                const option = document.createElement('option');
+                option.value = supplier.id;
+                option.textContent = supplier.name;
+                select.appendChild(option);
+            });
+        }
+
+        // Manipulação de produtos
+        function addProduct(productData) {
+            // Gerar novo ID
+            const newId = products.length > 0 ? Math.max(...products.map(p => p.id)) + 1 : 1;
+            
+            const newProduct = {
+                id: newId,
+                ...productData
+            };
+            
+            products.push(newProduct);
+            updateProductsTable();
+            
+            // Registrar movimentação inicial
+            const movement = {
+                id: movements.length > 0 ? Math.max(...movements.map(m => m.id)) + 1 : 1,
+                productId: newId,
+                productName: newProduct.name,
+                type: "in",
+                quantity: newProduct.stock,
+                responsible: "Sistema",
+                reason: "estoque_inicial",
+                notes: "Cadastro inicial do produto",
+                date: new Date().toISOString()
+            };
+            
+            movements.push(movement);
+            updateMovementsTable();
+        }
+
+        function editProduct(id) {
+            const product = getProductById(id);
+            if (!product) return;
+            
+            document.getElementById('modal-product-title').textContent = `Editar Produto: ${product.name}`;
+            document.getElementById('product-id').value = product.id;
+            document.getElementById('product-code').value = product.code;
+            document.getElementById('product-name').value = product.name;
+            document.getElementById('product-category').value = product.category;
+            document.getElementById('product-supplier').value = product.supplierId;
+            document.getElementById('product-price').value = product.price;
+            document.getElementById('product-cost').value = product.cost;
+            document.getElementById('product-colors').value = product.colors;
+            document.getElementById('product-sizes').value = product.sizes;
+            document.getElementById('product-stock').value = product.stock;
+            document.getElementById('product-min-stock').value = product.minStock;
+            document.getElementById('product-description').value = product.description;
+            
+            const imagePreview = document.getElementById('product-image-preview');
+            if (product.image) {
+                imagePreview.innerHTML = `<img src="${product.image}" alt="${product.name}" class="w-full h-full object-cover">`;
+            } else {
+                imagePreview.innerHTML = '<span class="text-gray-400">Sem imagem</span>';
+            }
+            
+            showModal('product-modal');
+        }
+
+        function saveProduct(e) {
+            e.preventDefault();
+            
+            const id = document.getElementById('product-id').value;
+            const productData = {
+                code: document.getElementById('product-code').value,
+                name: document.getElementById('product-name').value,
+                category: document.getElementById('product-category').value,
+                supplierId: parseInt(document.getElementById('product-supplier').value),
+                price: parseFloat(document.getElementById('product-price').value),
+                cost: parseFloat(document.getElementById('product-cost').value),
+                colors: document.getElementById('product-colors').value,
+                sizes: document.getElementById('product-sizes').value,
+                stock: parseInt(document.getElementById('product-stock').value),
+                minStock: parseInt(document.getElementById('product-min-stock').value),
+                description: document.getElementById('product-description').value,
+                image: document.getElementById('product-image-preview').querySelector('img')?.src || ''
+            };
+            
+            // Tratar upload de imagem (simulado)
+            const imageInput = document.getElementById('product-image');
+            if (imageInput.files && imageInput.files[0]) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    productData.image = e.target.result;
+                    completeProductSave(id, productData);
+                };
+                reader.readAsDataURL(imageInput.files[0]);
+            } else {
+                completeProductSave(id, productData);
+            }
+        }
+
+        function completeProductSave(id, productData) {
+            if (id) {
+                // Edição
+                const index = products.findIndex(p => p.id === parseInt(id));
+                if (index !== -1) {
+                    // Verificar se o estoque foi alterado
+                    const oldStock = products[index].stock;
+                    const stockDiff = productData.stock - oldStock;
+                    
+                    products[index] = { ...products[index], ...productData };
+                    
+                    // Registrar movimentação se o estoque foi alterado
+                    if (stockDiff !== 0) {
+                        const movement = {
+                            id: movements.length > 0 ? Math.max(...movements.map(m => m.id)) + 1 : 1,
+                            productId: parseInt(id),
+                            productName: productData.name,
+                            type: stockDiff > 0 ? "in" : "out",
+                            quantity: Math.abs(stockDiff),
+                            responsible: "Sistema",
+                            reason: "ajuste",
+                            notes: "Ajuste de estoque manual",
+                            date: new Date().toISOString()
+                        };
+                        
+                        movements.push(movement);
+                        updateMovementsTable();
+                    }
+                }
+            } else {
+                // Novo produto
+                addProduct(productData);
+            }
+            
+            closeModal('product-modal');
+            updateProductsTable();
+        }
+
+        function deleteProduct(id) {
+            if (confirm('Tem certeza que deseja excluir este produto?')) {
+                const index = products.findIndex(p => p.id === id);
+                if (index !== -1) {
+                    products.splice(index, 1);
+                    updateProductsTable();
+                    
+                    // Remover movimentações relacionadas
+                    movements = movements.filter(m => m.productId !== id);
+                    updateMovementsTable();
+                }
+            }
+        }
+
+        // Manipulação de fornecedores
+        function addSupplier(supplierData) {
+            // Gerar novo ID
+            const newId = suppliers.length > 0 ? Math.max(...suppliers.map(s => s.id)) + 1 : 1;
+            
+            const newSupplier = {
+                id: newId,
+                ...supplierData
+            };
+            
+            suppliers.push(newSupplier);
+            updateSuppliersTable();
+            loadSupplierOptions(); // Atualizar opções no formulário de produtos
+        }
+
+        function editSupplier(id) {
+            const supplier = getSupplierById(id);
+            if (!supplier) return;
+            
+            document.getElementById('modal-supplier-title').textContent = `Editar Fornecedor: ${supplier.name}`;
+            document.getElementById('supplier-id').value = supplier.id;
+            document.getElementById('supplier-name').value = supplier.name;
+            document.getElementById('supplier-cnpj').value = supplier.cnpj;
+            document.getElementById('supplier-contact').value = supplier.contact;
+            document.getElementById('supplier-phone').value = supplier.phone;
+            document.getElementById('supplier-email').value = supplier.email;
+            document.getElementById('supplier-website').value = supplier.website;
+            document.getElementById('supplier-address').value = supplier.address;
+            document.getElementById('supplier-city').value = supplier.city;
+            document.getElementById('supplier-state').value = supplier.state;
+            document.getElementById('supplier-notes').value = supplier.notes;
+            
+            showModal('supplier-modal');
+        }
+
+        function saveSupplier(e) {
+            e.preventDefault();
+            
+            const id = document.getElementById('supplier-id').value;
+            const supplierData = {
+                name: document.getElementById('supplier-name').value,
+                cnpj: document.getElementById('supplier-cnpj').value,
+                contact: document.getElementById('supplier-contact').value,
+                phone: document.getElementById('supplier-phone').value,
+                email: document.getElementById('supplier-email').value,
+                website: document.getElementById('supplier-website').value,
+                address: document.getElementById('supplier-address').value,
+                city: document.getElementById('supplier-city').value,
+                state: document.getElementById('supplier-state').value,
+                notes: document.getElementById('supplier-notes').value
+            };
+            
+            if (id) {
+                // Edição
+                const index = suppliers.findIndex(s => s.id === parseInt(id));
+                if (index !== -1) {
+                    suppliers[index] = { ...suppliers[index], ...supplierData };
+                }
+            } else {
+                // Novo fornecedor
+                addSupplier(supplierData);
+            }
+            
+            closeModal('supplier-modal');
+            updateSuppliersTable();
+            loadSupplierOptions(); // Atualizar opções no formulário de produtos
+        }
+
+        function deleteSupplier(id) {
+            // Verificar se o fornecedor está sendo usado por algum produto
+            const usedByProducts = products.some(p => p.supplierId === id);
+            
+            if (usedByProducts) {
+                alert('Este fornecedor está associado a produtos e não pode ser excluído.');
+                return;
+            }
+            
+            if (confirm('Tem certeza que deseja excluir este fornecedor?')) {
+                const index = suppliers.findIndex(s => s.id === id);
+                if (index !== -1) {
+                    suppliers.splice(index, 1);
+                    updateSuppliersTable();
+                    loadSupplierOptions(); // Atualizar opções no formulário de produtos
+                }
+            }
+        }
+
+        // Manipulação de movimentações
+        function showMovementModal(productId, productName, currentStock) {
+            document.getElementById('movement-product-id').value = productId;
+            document.getElementById('movement-product-name').value = productName;
+            document.getElementById('movement-product-display').textContent = productName;
+            document.getElementById('movement-current-stock').textContent = currentStock;
+            
+            showModal('movement-modal');
+        }
+
+        function saveMovement(e) {
+            e.preventDefault();
+            
+            const productId = parseInt(document.getElementById('movement-product-id').value);
+            const productName = document.getElementById('movement-product-name').value;
+            const type = document.getElementById('movement-type').value;
+            const quantity = parseInt(document.getElementById('movement-quantity').value);
+            const responsible = document.getElementById('movement-responsible').value;
+            const reason = document.getElementById('movement-reason').value;
+            const notes = document.getElementById('movement-notes').value;
+            
+            // Atualizar estoque do produto
+            const product = getProductById(productId);
+            if (product) {
+                if (type === 'in') {
+                    product.stock += quantity;
+                } else {
+                    product.stock = Math.max(0, product.stock - quantity);
+                }
+            }
+            
+            // Registrar movimentação
+            const movement = {
+                id: movements.length > 0 ? Math.max(...movements.map(m => m.id)) + 1 : 1,
+                productId,
+                productName,
+                type,
+                quantity,
+                responsible,
+                reason,
+                notes,
+                date: new Date().toISOString()
+            };
+            
+            movements.push(movement);
+            
+            closeModal('movement-modal');
+            updateProductsTable();
+            updateMovementsTable();
+            
+            // Se estiver visualizando estoque baixo, atualizar também
+            if (document.getElementById('low-stock-modal').style.display === 'block') {
+                updateLowStockTable();
+            }
+        }
+
+        // Controles de modal
+        function showModal(modalId) {
+            document.getElementById(modalId).style.display = 'block';
+        }
+
+        function closeModal(modalId) {
+            document.getElementById(modalId).style.display = 'none';
+            
+            // Limpar formulários
+            if (modalId === 'product-modal') {
+                document.getElementById('product-form').reset();
+                document.getElementById('product-image-preview').innerHTML = '<span class="text-gray-400">Sem imagem</span>';
+                document.getElementById('modal-product-title').textContent = 'Adicionar Novo Produto';
+                document.getElementById('product-id').value = '';
+            } else if (modalId === 'supplier-modal') {
+                document.getElementById('supplier-form').reset();
+                document.getElementById('modal-supplier-title').textContent = 'Adicionar Novo Fornecedor';
+                document.getElementById('supplier-id').value = '';
+            } else if (modalId === 'movement-modal') {
+                document.getElementById('movement-form').reset();
+            }
+        }
+
+        // Exportar dados
+        function exportSuppliersToExcel() {
+            // Simular exportação para Excel
+            alert('Exportando fornecedores para Excel...');
+            
+            // Em uma implementação real, você usaria uma biblioteca como SheetJS
+            // para gerar um arquivo Excel verdadeiro
+        }
+
+        function printLowStockReport() {
+            // Simular impressão
+            alert('Imprimindo relatório de estoque baixo...');
+            
+            // Em uma implementação real, você poderia usar window.print()
+            // ou gerar um PDF com os dados
+        }
+
+        // Inicialização
+        document.addEventListener('DOMContentLoaded', function() {
+            // Atualizar data atual
+            document.getElementById('current-date').textContent = formatDate(new Date());
+            
+            // Carregar dados iniciais
+            updateProductsTable();
+            updateMovementsTable();
+            updateSuppliersTable();
+            loadSupplierOptions();
+            
+            // Configurar abas
+            document.querySelectorAll('.tab-button').forEach(button => {
+                button.addEventListener('click', () => {
+                    const tabId = button.getAttribute('data-tab');
+                    
+                    // Remover classe active de todos os botões e conteúdos
+                    document.querySelectorAll('.tab-button').forEach(btn => {
+                        btn.classList.remove('active');
+                    });
+                    
+                    document.querySelectorAll('.tab-content').forEach(content => {
+                        content.classList.remove('active');
+                    });
+                    
+                    // Adicionar classe active ao botão e conteúdo clicado
+                    button.classList.add('active');
+                    document.getElementById(tabId).classList.add('active');
+                });
+            });
+            
+            // Configurar filtros
+            document.getElementById('search-product').addEventListener('input', (e) => {
+                const filter = e.target.value;
+                const category = document.getElementById('filter-category').value;
+                updateProductsTable(filter, category);
+            });
+            
+            document.getElementById('filter-category').addEventListener('change', (e) => {
+                const category = e.target.value;
+                const filter = document.getElementById('search-product').value;
+                updateProductsTable(filter, category);
+            });
+            
+            document.getElementById('search-movement').addEventListener('input', (e) => {
+                const filter = e.target.value;
+                updateMovementsTable(filter);
+            });
+            
+            document.getElementById('filter-in').addEventListener('click', () => {
+                updateMovementsTable('', 'in');
+            });
+            
+            document.getElementById('filter-out').addEventListener('click', () => {
+                updateMovementsTable('', 'out');
+            });
+            
+            document.getElementById('filter-all-movements').addEventListener('click', () => {
+                updateMovementsTable();
+            });
+            
+            document.getElementById('search-supplier').addEventListener('input', (e) => {
+                const filter = e.target.value;
+                updateSuppliersTable(filter);
+            });
+            
+            // Configurar botões
+            document.getElementById('btn-add-product').addEventListener('click', () => {
+                showModal('product-modal');
+            });
+            
+            document.getElementById('btn-add-supplier').addEventListener('click', () => {
+                showModal('supplier-modal');
+            });
+            
+            document.getElementById('btn-low-stock').addEventListener('click', () => {
+                updateLowStockTable();
+                showModal('low-stock-modal');
+            });
+            
+            document.getElementById('btn-export-suppliers').addEventListener('click', exportSuppliersToExcel);
+            
+            document.getElementById('btn-print-low-stock').addEventListener('click', printLowStockReport);
+            
+            // Configurar formulários
+            document.getElementById('product-form').addEventListener('submit', saveProduct);
+            document.getElementById('supplier-form').addEventListener('submit', saveSupplier);
+            document.getElementById('movement-form').addEventListener('submit', saveMovement);
+            
+            // Configurar fechamento de modais
+            document.querySelectorAll('.close, .close-modal').forEach(element => {
+                element.addEventListener('click', function() {
+                    const modal = this.closest('.modal');
+                    if (modal) {
+                        modal.style.display = 'none';
+                        
+                        // Limpar formulários
+                        if (modal.id === 'product-modal') {
+                            document.getElementById('product-form').reset();
+                            document.getElementById('product-image-preview').innerHTML = '<span class="text-gray-400">Sem imagem</span>';
+                            document.getElementById('modal-product-title').textContent = 'Adicionar Novo Produto';
+                            document.getElementById('product-id').value = '';
+                        } else if (modal.id === 'supplier-modal') {
+                            document.getElementById('supplier-form').reset();
+                            document.getElementById('modal-supplier-title').textContent = 'Adicionar Novo Fornecedor';
+                            document.getElementById('supplier-id').value = '';
+                        } else if (modal.id === 'movement-modal') {
+                            document.getElementById('movement-form').reset();
+                        }
+                    }
+                });
+            });
+            
+            // Fechar modal ao clicar fora
+            window.addEventListener('click', (e) => {
+                if (e.target.classList.contains('modal')) {
+                    e.target.style.display = 'none';
+                    
+                    // Limpar formulários
+                    if (e.target.id === 'product-modal') {
+                        document.getElementById('product-form').reset();
+                        document.getElementById('product-image-preview').innerHTML = '<span class="text-gray-400">Sem imagem</span>';
+                        document.getElementById('modal-product-title').textContent = 'Adicionar Novo Produto';
+                        document.getElementById('product-id').value = '';
+                    } else if (e.target.id === 'supplier-modal') {
+                        document.getElementById('supplier-form').reset();
+                        document.getElementById('modal-supplier-title').textContent = 'Adicionar Novo Fornecedor';
+                        document.getElementById('supplier-id').value = '';
+                    } else if (e.target.id === 'movement-modal') {
+                        document.getElementById('movement-form').reset();
+                    }
+                }
+            });
+            
+            // Visualização de imagem antes do upload
+            document.getElementById('product-image').addEventListener('change', function(e) {
+                const preview = document.getElementById('product-image-preview');
+                if (this.files && this.files[0]) {
+                    const reader = new FileReader();
+                    reader.onload = function(e) {
+                        preview.innerHTML = `<img src="${e.target.result}" alt="Preview" class="w-full h-full object-cover">`;
+                    };
+                    reader.readAsDataURL(this.files[0]);
+                } else {
+                    preview.innerHTML = '<span class="text-gray-400">Sem imagem</span>';
+                }
+            });
+        });
+    </script>
+</body>
+</html>
